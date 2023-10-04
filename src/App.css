@@ -1,5 +1,8 @@
 .App {
   text-align: center;
+  font-family: "Proxima Nova", sans-serif;
+  background-color: #FFF;
+  color: #000
 }
 
 .App-logo {
@@ -17,3 +20,16 @@
   font-size: calc(10px + 2vmin);
   color: white;
 }
+
+li {
+  list-style-type: none
+}
+
+.card-custom {
+  height: 300px; 
+}
+
+.card-img-top {
+  max-height: 400px;
+}
+
