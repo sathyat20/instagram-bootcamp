@@ -15,131 +15,146 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthState
 const DB_MESSAGES_KEY = "messages";
 const STORAGE_KEY = "images/";
 
-class App extends React.Component {
-  constructor(props) {
-    super(props);
-    // Initialise empty messages array in state to keep local state in sync with Firebase
-    // When Firebase changes, update local state, which will update local UI
-    this.state = {
-      messages: [],
-      value: "",
-      fileInputFile: null,
-      fileInputValue: "",
-      email: "", 
-      password: "",
-      isLoggedIn: false,
-      user: {}
-    };
-  }
+function App() {
+  // constructor(props) {
+  //   super(props);
+  //   // Initialise empty messages array in state to keep local state in sync with Firebase
+  //   // When Firebase changes, update local state, which will update local UI
+  //   this.state = {
+  //     messages: [],
+  //     value: "",
+  //     fileInputFile: null,
+  //     fileInputValue: "",
+  //     email: "", 
+  //     password: "",
+  //     isLoggedIn: false,
+  //     user: {}
+  //   };
+  // }
 
-  // const [messages, setMessages] = useState([])
-  // const [value, setValue] = useState("")
-  // const [fileInputFile, setFileInputFile] = useState(null)
-  // const [fileInputValue, setFileInputValue] = useState("")
-  // const [email, setEmail] = useState("")
-  // const [password, setPassword] = useState("")
-  // const [isLoggedIn, setIsLoggedIn] = useState(false)
-  // const [user, setUser] = useState({})
-
-  componentDidMount() {
+  const [messages, setMessages] = useState([])
+  useEffect(() => {
     const messagesRef = ref(database, DB_MESSAGES_KEY);
-    // onChildAdded will return data for every child at the reference and every subsequent new child
     onChildAdded(messagesRef, (data) => {
       // Add the subsequent child to local component state, initialising a new array to trigger re-render
-      this.setState((state) => ({
-        // Store message key so we can use it as a key in our list items when rendering messages
-        messages: [...state.messages, { key: data.key, val: data.val() }],
-      }));
-    });
+      setMessages((prevMessages) => [...prevMessages, { key: data.key, val: data.val() }])
+    })}, []);
 
-  // useEffect(() => {
+  const [value, setValue] = useState("")
+  const [fileInputFile, setFileInputFile] = useState(null)
+  const [fileInputValue, setFileInputValue] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState({})
+
+  // componentDidMount() {
   //   const messagesRef = ref(database, DB_MESSAGES_KEY);
+  //   // onChildAdded will return data for every child at the reference and every subsequent new child
   //   onChildAdded(messagesRef, (data) => {
   //     // Add the subsequent child to local component state, initialising a new array to trigger re-render
-  //     setMessages([...messages, { key: data.key, val: data.val() }])
-  //     // this.setState((state) => ({
-  //     //   // Store message key so we can use it as a key in our list items when rendering messages
-  //     //   messages: [...state.messages, { key: data.key, val: data.val() }],
-  //     // }));
-  // })})
+  //     this.setState((state) => ({
+  //       // Store message key so we can use it as a key in our list items when rendering messages
+  //       messages: [...state.messages, { key: data.key, val: data.val() }],
+  //     }));
+  //   });
 
-    onAuthStateChanged(auth, (userInfo) => {
+  useEffect(() => {
+    const authChange = onAuthStateChanged(auth, (userInfo) => {
       if (userInfo) {
         //signed in user
-        this.setState({
-          user: userInfo,
-          isLoggedIn: true
-        })
-
+        setUser(userInfo)
+        setIsLoggedIn(true)
+        // setValue("")
       } else {
         //no signed in user 
-        this.setState({
-          user: {},
-          isLoggedIn: false,
-        });
+        setUser({})
+        setIsLoggedIn(false)
       }
-    })
-  }
+    }); 
+      return () => {
+        authChange()
+      }
+    }, [])
 
-  logout = () => {
+    // onAuthStateChanged(auth, (userInfo) => {
+    //   if (userInfo) {
+    //     //signed in user
+    //     setUser(userInfo)
+    //     setIsLoggedIn(true)
+    //   } else {
+    //     //no signed in user 
+    //     setUser({})
+    //     setIsLoggedIn(false)
+    //   }
+    // })
+  
+
+  const logout = () => {
     signOut(auth).then(() => {
       console.log("Signed Out")
     })
   }
 
   // Note use of array fields syntax to avoid having to manually bind this method to the class
-  writeData = (url) => {
+  const writeData = (url) => {
     const messageListRef = ref(database, DB_MESSAGES_KEY);
     const newMessageRef = push(messageListRef);
 
     set(newMessageRef, {
       date: new Date().toLocaleTimeString(),
       url: url, 
-      value: this.state.value,
-      email: this.state.email
+      value: value,
+      email: email
     });
 
-    this.setState({
-      value: "",
-      fileInputFile: null,
-      fileInputValue: ""
-    })
+    setValue("")
+    setFileInputFile(null)
+    setFileInputValue("")
+    
   };
 
-  handleChange = (event) => {
+  const handleChange = (event) => {
   //  let name = event.target.name;
   //  let value = event.target.value;
     const name = event.target.id
     const value = event.target.value
 
-   this.setState({
-      value : event.target.value,
-      [name] : value  
-   });
+    setValue(event.target.value)
+    if (name === "email") {
+      setEmail(value)
+    } else if (name === "password") {
+      setPassword(value)
+    } 
+  //  this.setState({
+  //     value : event.target.value,
+  //     [name] : value  
+  //  });
   };
 
-  handleSubmit = (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
   };
 
-  submit = () => {
+  const submit = () => {
     const fullStorageRef = storageRef(
       storage,
-      STORAGE_KEY + this.state.fileInputFile.name
+      STORAGE_KEY + fileInputFile.name
     );
-    uploadBytes(fullStorageRef, this.state.fileInputFile).then((snapshot) => {
-      getDownloadURL(fullStorageRef, this.state.fileInputFile.name).then(
+    uploadBytes(fullStorageRef, fileInputFile).then((snapshot) => {
+      getDownloadURL(fullStorageRef, fileInputFile.name).then(
         (url) => {
-          this.writeData(url);
+          writeData(url);
         }
       );
     });
+    setValue("");
   };
 
-  render() {
+ 
     //Convert messages in state to message JSX elements to render
 
-    let messageListItems = this.state.messages.map((message) => (
+    let messageListItems = messages.map((message) => (
       <div className="col-md-4 mb-4" key={message.key}>
         {/* <li key={message.key}> */}
         <div className="card card-custom">
@@ -166,8 +181,8 @@ class App extends React.Component {
       <div className="App">
         <header className="App-header">
           {/* TODO: Add input field and add text input as messages in Firebase */}
-          {this.state.isLoggedIn ? (
-            <button onClick={this.logout}>Sign Out</button>
+          {isLoggedIn ? (
+            <button onClick={logout}>Sign Out</button>
           ) : (
             <div>
               <div>
@@ -177,8 +192,8 @@ class App extends React.Component {
                     type="text"
                     id="email"
                     placeholder="Enter Email"
-                    value={this.state.email}
-                    onChange={(e) => this.handleChange(e)}
+                    value={email}
+                    onChange={(e) => handleChange(e)}
                   />
                 </label>
                 <br />
@@ -188,8 +203,8 @@ class App extends React.Component {
                     type="password"
                     id="password"
                     placeholder="Enter Password"
-                    value={this.state.password}
-                    onChange={(e) => this.handleChange(e)}
+                    value={password}
+                    onChange={(e) => handleChange(e)}
                   />
                 </label> 
               </div>
@@ -197,15 +212,17 @@ class App extends React.Component {
                 onClick={async () => {
                   return createUserWithEmailAndPassword(
                     auth,
-                    this.state.email,
-                    this.state.password
+                    email,
+                    password
                   ).then((userInfo) => {
                     console.log(userInfo);
                     console.log("Successful sign up");
-                    this.setState({
-                      email: "",
-                      password: "" 
-                    })
+                    setEmail("")
+                    setPassword("")
+                    // this.setState({
+                    //   email: "",
+                    //   password: "" 
+                    // })
                   });
                 }}
               >
@@ -215,11 +232,12 @@ class App extends React.Component {
                 onClick={async () => {
                   return signInWithEmailAndPassword(
                     auth,
-                    this.state.email,
-                    this.state.password
+                    email,
+                    password
                   ).then((userInfo) => {
                     console.log(userInfo);
                     console.log("Successful sign in")
+                    setValue("")
                   //   this.setState({
                   //     user: userInfo.user,
                   //     isLoggedIn: true 
@@ -227,40 +245,42 @@ class App extends React.Component {
                 })}}>
                 Login
               </button>
-              {this.state.email.length > 10 ? 
-              <button onClick={()=>sendPasswordResetEmail(auth, this.state.email).then(() => console.log("email sent"))}>Forgotten Password</button>
+              {email.length > 10 ? 
+              <button onClick={()=>sendPasswordResetEmail(auth, email).then(() => console.log("email sent"))}>Forgotten Password</button>
                : null}
             </div> 
           )} 
 
-          {this.state.isLoggedIn ? ( 
+          {isLoggedIn ? ( 
             <div>
-              <form onSubmit={this.handleSubmit}>
+              <form onSubmit={handleSubmit}>
                 <label>
                   Message:
                   <input
                     type="text"
                     name="value"
                     placeholder="Insert Message"
-                    value={this.state.value}
-                    onChange={(e) => this.handleChange(e)}
+                    value={value}
+                    onChange={(e) => handleChange(e)}
                   />
                 </label>
                 <input
                   type="file"
                   name="file"
                   // Set state's fileInputValue to "" after submit to reset file input
-                  value={this.state.fileInputValue}
-                  onChange={(e) =>
+                  value={fileInputValue}
+                  onChange={(e) => {
                     // e.target.files is a FileList object that is an array of File objects
                     // e.target.files[0] is a File object that Firebase Storage can upload
-                    this.setState({
-                      fileInputFile: e.target.files[0],
-                      fileInputValue: e.target.file,
-                    })
+                    setFileInputFile(e.target.files[0])
+                    setFileInputValue(e.target.file) }
+                    // this.setState({
+                    //   fileInputFile: e.target.files[0],
+                    //   fileInputValue: e.target.file,
+                    // })
                   }
                 />
-                <button onClick={this.submit}>Send</button>
+                <button onClick={submit}>Send</button>
               </form>{" "}
               <div className="container">
                 <div className="row">{messageListItems}</div>
@@ -270,7 +290,6 @@ class App extends React.Component {
         </header>
       </div>
     );
-  }
 }
 
 export default App;
